@@ -1,129 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { VaultEntry } from '@/types/vault';
-
-// Mock initial data
-const MOCK_ENTRIES: VaultEntry[] = [
-  {
-    id: '1',
-    title: 'GitHub',
-    username: 'john.doe@email.com',
-    password: 'Gh$tR0ng!Pass2024',
-    url: 'https://github.com',
-    category: 'Coding',
-    lastModified: new Date('2024-01-15'),
-    strength: 'strong'
-  },
-  {
-    id: '2',
-    title: 'Gmail',
-    username: 'john.doe@gmail.com',
-    password: 'password123',
-    url: 'https://gmail.com',
-    category: 'Email',
-    lastModified: new Date('2024-01-10'),
-    strength: 'weak'
-  },
-  {
-    id: '3',
-    title: 'Netflix',
-    username: 'john.doe@email.com',
-    password: 'NetflixSecure!99',
-    url: 'https://netflix.com',
-    category: 'Entertainment',
-    lastModified: new Date('2024-01-20'),
-    strength: 'strong'
-  },
-  {
-    id: '4',
-    title: 'LinkedIn',
-    username: 'john.doe',
-    password: 'LinkedIn2023!',
-    url: 'https://linkedin.com',
-    category: 'Work',
-    lastModified: new Date('2024-01-12'),
-    strength: 'medium'
-  },
-  {
-    id: '5',
-    title: 'Amazon',
-    username: 'john.doe@email.com',
-    password: 'password123',
-    url: 'https://amazon.com',
-    category: 'Shopping',
-    lastModified: new Date('2024-01-18'),
-    strength: 'weak'
-  },
-  {
-    id: '6',
-    title: 'Canvas LMS',
-    username: 'student.johndoe',
-    password: 'School!Pass2024',
-    url: 'https://canvas.instructure.com',
-    category: 'School',
-    lastModified: new Date('2024-01-22'),
-    strength: 'strong'
-  },
-  {
-    id: '7',
-    title: 'Google Drive (School)',
-    username: 'john.doe@university.edu',
-    password: 'MyDrive123',
-    url: 'https://drive.google.com',
-    category: 'School',
-    lastModified: new Date('2024-01-19'),
-    strength: 'medium'
-  },
-  {
-    id: '8',
-    title: 'Slack (Work)',
-    username: 'john.doe@company.com',
-    password: 'SlackSecure!2024',
-    url: 'https://company.slack.com',
-    category: 'Work',
-    lastModified: new Date('2024-01-21'),
-    strength: 'strong'
-  },
-  {
-    id: '9',
-    title: 'GitLab',
-    username: 'johndoe',
-    password: 'GitLab$2024Pass',
-    url: 'https://gitlab.com',
-    category: 'Coding',
-    lastModified: new Date('2024-01-17'),
-    strength: 'strong'
-  },
-  {
-    id: '10',
-    title: 'Stack Overflow',
-    username: 'john_doe_dev',
-    password: 'stackoverflow123',
-    url: 'https://stackoverflow.com',
-    category: 'Coding',
-    lastModified: new Date('2024-01-14'),
-    strength: 'weak'
-  },
-  {
-    id: '11',
-    title: 'Jira (Work)',
-    username: 'john.doe@company.com',
-    password: 'JiraWork2024!',
-    url: 'https://company.atlassian.net',
-    category: 'Work',
-    lastModified: new Date('2024-01-16'),
-    strength: 'strong'
-  },
-  {
-    id: '12',
-    title: 'Zoom (School)',
-    username: 'john.doe@university.edu',
-    password: 'ZoomClass2024',
-    url: 'https://zoom.us',
-    category: 'School',
-    lastModified: new Date('2024-01-13'),
-    strength: 'medium'
-  }
-];
+import { onAuthChange, signIn, signOut as firebaseSignOut, getCurrentUser } from '@/services/authService';
+import {
+  getPasswordEntries,
+  addPasswordEntry,
+  updatePasswordEntry,
+  deletePasswordEntry
+} from '@/services/firestoreService';
+import { toast } from 'sonner';
 
 export function useVault() {
   const [isLocked, setIsLocked] = useState(true);
@@ -131,13 +15,46 @@ export function useVault() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [idleTimer, setIdleTimer] = useState<NodeJS.Timeout | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Auto-lock after 5 minutes of inactivity
   const AUTO_LOCK_TIME = 5 * 60 * 1000;
 
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthChange((user) => {
+      if (user) {
+        setUserId(user.uid);
+        setIsLocked(false);
+        loadEntries(user.uid);
+      } else {
+        setUserId(null);
+        setIsLocked(true);
+        setEntries([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Load entries from Firestore
+  const loadEntries = async (uid: string) => {
+    setIsLoading(true);
+    try {
+      const fetchedEntries = await getPasswordEntries(uid);
+      setEntries(fetchedEntries);
+    } catch (error: any) {
+      toast.error('Failed to load passwords');
+      console.error('Error loading entries:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetIdleTimer = useCallback(() => {
     if (idleTimer) clearTimeout(idleTimer);
-    
+
     if (!isLocked) {
       const timer = setTimeout(() => {
         setIsLocked(true);
@@ -149,7 +66,7 @@ export function useVault() {
   useEffect(() => {
     if (!isLocked) {
       resetIdleTimer();
-      
+
       // Reset timer on user activity
       const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
       events.forEach(event => {
@@ -165,46 +82,104 @@ export function useVault() {
     }
   }, [isLocked, resetIdleTimer]);
 
-  const unlock = (masterPassword: string) => {
-    // Mock authentication
-    if (masterPassword === 'something') {
+  // Unlock vault - now uses Firebase Auth
+  const unlock = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const user = await signIn(email, password);
+      setUserId(user.uid);
       setIsLocked(false);
-      setEntries(MOCK_ENTRIES);
+      await loadEntries(user.uid);
+      toast.success('Vault unlocked');
       return true;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to unlock vault');
+      console.error('Error unlocking vault:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    return false;
   };
 
-  const lock = () => {
-    setIsLocked(true);
-    setSearchQuery('');
-    setSelectedCategory(null);
-    if (idleTimer) clearTimeout(idleTimer);
+  // Lock vault
+  const lock = async () => {
+    try {
+      await firebaseSignOut();
+      setIsLocked(true);
+      setSearchQuery('');
+      setSelectedCategory(null);
+      setEntries([]);
+      setUserId(null);
+      if (idleTimer) clearTimeout(idleTimer);
+      toast.success('Vault locked');
+    } catch (error: any) {
+      toast.error('Failed to lock vault');
+      console.error('Error locking vault:', error);
+    }
   };
 
-  const addEntry = (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => {
-    const newEntry: VaultEntry = {
-      ...entry,
-      id: Date.now().toString(),
-      lastModified: new Date()
-    };
-    setEntries(prev => [newEntry, ...prev]);
+  // Add new entry
+  const addEntry = async (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => {
+    if (!userId) {
+      toast.error('You must be logged in to add entries');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const newEntryId = await addPasswordEntry(userId, entry);
+      const newEntry: VaultEntry = {
+        ...entry,
+        id: newEntryId,
+        lastModified: new Date()
+      };
+      setEntries(prev => [newEntry, ...prev]);
+      toast.success('Password added');
+    } catch (error: any) {
+      toast.error('Failed to add password');
+      console.error('Error adding entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateEntry = (id: string, updates: Partial<VaultEntry>) => {
-    setEntries(prev => 
-      prev.map(entry => 
-        entry.id === id 
-          ? { ...entry, ...updates, lastModified: new Date() }
-          : entry
-      )
-    );
+  // Update entry
+  const updateEntry = async (id: string, updates: Partial<VaultEntry>) => {
+    setIsLoading(true);
+    try {
+      await updatePasswordEntry(id, updates);
+      setEntries(prev =>
+        prev.map(entry =>
+          entry.id === id
+            ? { ...entry, ...updates, lastModified: new Date() }
+            : entry
+        )
+      );
+      toast.success('Password updated');
+    } catch (error: any) {
+      toast.error('Failed to update password');
+      console.error('Error updating entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteEntry = (id: string) => {
-    setEntries(prev => prev.filter(entry => entry.id !== id));
+  // Delete entry
+  const deleteEntry = async (id: string) => {
+    setIsLoading(true);
+    try {
+      await deletePasswordEntry(id);
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+      toast.success('Password deleted');
+    } catch (error: any) {
+      toast.error('Failed to delete password');
+      console.error('Error deleting entry:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Filter entries
   const filteredEntries = entries.filter(entry => {
     // Filter by category
     if (selectedCategory && entry.category !== selectedCategory) {
@@ -228,6 +203,7 @@ export function useVault() {
     allEntries: entries,
     searchQuery,
     selectedCategory,
+    isLoading,
     unlock,
     lock,
     addEntry,

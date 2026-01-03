@@ -1,13 +1,14 @@
 import { useState, FormEvent } from 'react';
-import { Lock, Shield } from 'lucide-react';
+import { Lock, Shield, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface LockScreenProps {
-  onUnlock: (password: string) => boolean;
+  onUnlock: (email: string, password: string) => Promise<boolean>;
 }
 
 export default function LockScreen({ onUnlock }: LockScreenProps) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,17 +18,19 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     setError('');
     setIsLoading(true);
 
-    // Simulate authentication delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const success = await onUnlock(email, password);
 
-    const success = onUnlock(password);
-    
-    if (!success) {
-      setError('Invalid master password');
+      if (!success) {
+        setError('Invalid email or password');
+        setPassword('');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to unlock vault');
       setPassword('');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -49,7 +52,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
             Vault
           </h1>
           <p className="text-sm text-white/60">
-            Enter your master password to unlock
+            Sign in to unlock your vault
           </p>
         </div>
 
@@ -57,8 +60,28 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         <div className="glass-panel rounded-2xl p-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-white/80 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" strokeWidth={2} />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-12 h-14 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
+                  placeholder="your.email@example.com"
+                  disabled={isLoading}
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="password" className="block text-sm font-semibold text-white/80 mb-2">
-                Master Password
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" strokeWidth={2} />
@@ -68,9 +91,9 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-12 h-14 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
-                  placeholder="Enter master password"
+                  placeholder="Enter your password"
                   disabled={isLoading}
-                  autoFocus
+                  required
                 />
               </div>
               {error && (
@@ -82,24 +105,24 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
 
             <Button
               type="submit"
-              disabled={isLoading || !password}
+              disabled={isLoading || !email || !password}
               className="w-full h-14 bg-[#00d4ff] hover:bg-[#00bdeb] text-[#0a0e14] font-bold text-base active:scale-95 transition-all glow-cyan"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">⏳</span>
-                  Unlocking...
+                  Signing in...
                 </span>
               ) : (
-                'Unlock Vault'
+                'Sign In'
               )}
             </Button>
           </form>
 
-          {/* Demo hint */}
+          {/* Info hint */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <p className="text-xs text-white/40 text-center">
-              Demo: Enter any password to unlock
+              Create an account in Firebase Console to get started
             </p>
           </div>
         </div>
@@ -107,7 +130,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         {/* Footer */}
         <div className="mt-8 text-center animate-in fade-in duration-700 delay-300">
           <p className="text-xs text-white/30">
-            Protected by end-to-end encryption
+            Protected by Firebase Authentication & Firestore
           </p>
         </div>
       </div>
