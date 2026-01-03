@@ -32,4 +32,5 @@ core
 
 .github/
 
-**/tempobook/**
+# Claude
+CLAUDE.md

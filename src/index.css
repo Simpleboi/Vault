@@ -100,4 +100,8 @@
     opacity: 0.03;
     pointer-events: none;
   }
+
+  .debug {
+    @apply border border-red-500;
+  }
 }
