@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Plus, Lock, Settings, Shield, Zap, LogOut, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import VaultSearch from './VaultSearch';
-import VaultEntryCard from './VaultEntryCard';
-import EntryModal from './EntryModal';
-import CommandPalette from './CommandPalette';
-import SecurityDashboard from './SecurityDashboard';
+import VaultSearch from '@/components/VaultSearch';
+import VaultEntryCard from '@/components/VaultEntryCard';
+import EntryModal from '@/components/EntryModal';
+import CommandPalette from '@/components/CommandPalette';
+import SecurityDashboard from '@/components/SecurityDashboard';
 import type { VaultEntry } from '@/types/vault';
 
 interface VaultViewProps {

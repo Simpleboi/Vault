@@ -1,5 +1,5 @@
 import { useVault } from '@/hooks/useVault';
-import LockScreen from './LockScreen';
+import LockScreen from '@/pages/LockScreen';
 import VaultView from './VaultView';
 import { Toaster } from '@/components/ui/sonner';
 
