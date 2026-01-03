@@ -1,6 +1,6 @@
 import { useVault } from '@/hooks/useVault';
 import LockScreen from '@/pages/LockScreen';
-import VaultView from './VaultView';
+import VaultView from '@/pages/VaultView';
 import { Toaster } from '@/components/ui/sonner';
 
 function Home() {

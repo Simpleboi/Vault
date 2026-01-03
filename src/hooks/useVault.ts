@@ -96,7 +96,7 @@ export function useVault() {
 
   const unlock = (masterPassword: string) => {
     // Mock authentication
-    if (masterPassword === 'demo' || masterPassword.length > 0) {
+    if (masterPassword === 'something') {
       setIsLocked(false);
       setEntries(MOCK_ENTRIES);
       return true;
