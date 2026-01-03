@@ -16,33 +16,37 @@ export function useVault() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [idleTimer, setIdleTimer] = useState<NodeJS.Timeout | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Auto-lock after 5 minutes of inactivity
   const AUTO_LOCK_TIME = 5 * 60 * 1000;
 
-  // Listen for auth state changes
+  // Listen for auth state changes (logout only)
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
-      if (user) {
-        setUserId(user.uid);
-        setIsLocked(false);
-        loadEntries(user.uid);
-      } else {
+      if (!user) {
+        // User logged out
         setUserId(null);
         setIsLocked(true);
         setEntries([]);
+        setEncryptionKey(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Load entries from Firestore
-  const loadEntries = async (uid: string) => {
+  // Function to unlock vault with encryption key
+  const unlockVault = useCallback(async (uid: string, key: CryptoKey) => {
+    setUserId(uid);
+    setEncryptionKey(key);
+    setIsLocked(false);
+
+    // Load encrypted entries
     setIsLoading(true);
     try {
-      const fetchedEntries = await getPasswordEntries(uid);
+      const fetchedEntries = await getPasswordEntries(uid, key);
       setEntries(fetchedEntries);
     } catch (error: any) {
       toast.error('Failed to load passwords');
@@ -50,14 +54,14 @@ export function useVault() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const resetIdleTimer = useCallback(() => {
     if (idleTimer) clearTimeout(idleTimer);
 
     if (!isLocked) {
       const timer = setTimeout(() => {
-        setIsLocked(true);
+        lock();
       }, AUTO_LOCK_TIME);
       setIdleTimer(timer);
     }
@@ -91,6 +95,7 @@ export function useVault() {
       setSelectedCategory(null);
       setEntries([]);
       setUserId(null);
+      setEncryptionKey(null); // Clear encryption key from memory
       if (idleTimer) clearTimeout(idleTimer);
       toast.success('Vault locked');
     } catch (error: any) {
@@ -101,14 +106,14 @@ export function useVault() {
 
   // Add new entry
   const addEntry = async (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => {
-    if (!userId) {
+    if (!userId || !encryptionKey) {
       toast.error('You must be logged in to add entries');
       return;
     }
 
     setIsLoading(true);
     try {
-      const newEntryId = await addPasswordEntry(userId, entry);
+      const newEntryId = await addPasswordEntry(userId, entry, encryptionKey);
       const newEntry: VaultEntry = {
         ...entry,
         id: newEntryId,
@@ -126,9 +131,14 @@ export function useVault() {
 
   // Update entry
   const updateEntry = async (id: string, updates: Partial<VaultEntry>) => {
+    if (!encryptionKey) {
+      toast.error('Encryption key not available');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await updatePasswordEntry(id, updates);
+      await updatePasswordEntry(id, updates, encryptionKey);
       setEntries(prev =>
         prev.map(entry =>
           entry.id === id
@@ -186,6 +196,7 @@ export function useVault() {
     selectedCategory,
     isLoading,
     lock,
+    unlockVault,
     addEntry,
     updateEntry,
     deleteEntry,

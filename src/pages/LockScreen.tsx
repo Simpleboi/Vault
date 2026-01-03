@@ -3,11 +3,17 @@ import { Lock, Shield, Mail, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { signIn, signUp } from '@/services/authService';
+import { getOrCreateUserSalt } from '@/services/userService';
+import { deriveKey } from '@/services/encryptionService';
 import { toast } from 'sonner';
 
 type AuthMode = 'signin' | 'signup';
 
-export default function LockScreen() {
+interface LockScreenProps {
+  onAuthenticated: (encryptionKey: CryptoKey) => void;
+}
+
+export default function LockScreen({ onAuthenticated }: LockScreenProps) {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,14 +39,28 @@ export default function LockScreen() {
     setIsLoading(true);
 
     try {
+      let user;
+
       if (mode === 'signin') {
-        await signIn(email, password);
+        user = await signIn(email, password);
         toast.success('Welcome back!');
       } else {
-        await signUp(email, password);
+        user = await signUp(email, password);
         toast.success('Account created successfully!');
       }
-      // Auth state listener in useVault will handle unlocking
+
+      // Get or create salt for the user
+      const salt = await getOrCreateUserSalt(user.uid);
+
+      // Derive encryption key from password and salt
+      const encryptionKey = await deriveKey(password, salt);
+
+      // Pass encryption key to parent (will be stored in useVault)
+      onAuthenticated(encryptionKey);
+
+      // Clear password from memory
+      setPassword('');
+      setConfirmPassword('');
     } catch (err: any) {
       const errorMessage = err.message || `Failed to ${mode === 'signin' ? 'sign in' : 'sign up'}`;
       setError(errorMessage);
@@ -200,7 +220,7 @@ export default function LockScreen() {
             <p className="text-xs text-white/40 text-center">
               {mode === 'signin'
                 ? "Don't have an account? Click Sign Up above"
-                : 'Your passwords will be encrypted and stored securely'}
+                : 'Your passwords are encrypted with AES-256-GCM'}
             </p>
           </div>
         </div>
@@ -208,7 +228,7 @@ export default function LockScreen() {
         {/* Footer */}
         <div className="mt-8 text-center animate-in fade-in duration-700 delay-300">
           <p className="text-xs text-white/30">
-            Protected by Firebase Authentication & Firestore
+            Client-side encryption • Zero-knowledge architecture
           </p>
         </div>
       </div>

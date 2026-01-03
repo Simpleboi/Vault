@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { VaultEntry } from '@/types/vault';
+import { encrypt, decrypt } from './encryptionService';
 
 const COLLECTION_NAME = 'passwords';
 
@@ -23,27 +24,74 @@ const convertTimestamp = (timestamp: any): Date => {
   return new Date(timestamp);
 };
 
+// Encrypt sensitive fields of an entry
+const encryptEntry = async (
+  entry: Omit<VaultEntry, 'id' | 'lastModified'>,
+  encryptionKey: CryptoKey
+) => {
+  const encryptedPassword = await encrypt(entry.password, encryptionKey);
+  const encryptedUsername = await encrypt(entry.username, encryptionKey);
+  const encryptedNotes = entry.notes ? await encrypt(entry.notes, encryptionKey) : null;
+
+  return {
+    title: entry.title, // Title is not encrypted for searchability
+    username: encryptedUsername.encrypted,
+    usernameIV: encryptedUsername.iv,
+    password: encryptedPassword.encrypted,
+    passwordIV: encryptedPassword.iv,
+    notes: encryptedNotes?.encrypted || null,
+    notesIV: encryptedNotes?.iv || null,
+    url: entry.url,
+    category: entry.category,
+    strength: entry.strength,
+    isCompromised: entry.isCompromised
+  };
+};
+
+// Decrypt sensitive fields of an entry
+const decryptEntry = async (
+  data: any,
+  encryptionKey: CryptoKey
+): Promise<Omit<VaultEntry, 'id' | 'lastModified'>> => {
+  const username = await decrypt(data.username, data.usernameIV, encryptionKey);
+  const password = await decrypt(data.password, data.passwordIV, encryptionKey);
+  const notes = data.notes ? await decrypt(data.notes, data.notesIV, encryptionKey) : undefined;
+
+  return {
+    title: data.title,
+    username,
+    password,
+    notes,
+    url: data.url,
+    category: data.category,
+    strength: data.strength,
+    isCompromised: data.isCompromised
+  };
+};
+
 // Get all password entries for a user
-export const getPasswordEntries = async (userId: string): Promise<VaultEntry[]> => {
+export const getPasswordEntries = async (
+  userId: string,
+  encryptionKey: CryptoKey
+): Promise<VaultEntry[]> => {
   try {
     const q = query(collection(db, COLLECTION_NAME), where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title,
-        username: data.username,
-        password: data.password,
-        url: data.url,
-        notes: data.notes,
-        category: data.category,
-        lastModified: convertTimestamp(data.lastModified),
-        strength: data.strength,
-        isCompromised: data.isCompromised
-      } as VaultEntry;
-    });
+    const entries = await Promise.all(
+      querySnapshot.docs.map(async (docSnapshot) => {
+        const data = docSnapshot.data();
+        const decryptedData = await decryptEntry(data, encryptionKey);
+
+        return {
+          id: docSnapshot.id,
+          ...decryptedData,
+          lastModified: convertTimestamp(data.lastModified)
+        } as VaultEntry;
+      })
+    );
+
+    return entries;
   } catch (error) {
     console.error('Error getting password entries:', error);
     throw error;
@@ -53,12 +101,15 @@ export const getPasswordEntries = async (userId: string): Promise<VaultEntry[]> 
 // Add a new password entry
 export const addPasswordEntry = async (
   userId: string,
-  entry: Omit<VaultEntry, 'id' | 'lastModified'>
+  entry: Omit<VaultEntry, 'id' | 'lastModified'>,
+  encryptionKey: CryptoKey
 ): Promise<string> => {
   try {
+    const encryptedData = await encryptEntry(entry, encryptionKey);
+
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       userId,
-      ...entry,
+      ...encryptedData,
       lastModified: serverTimestamp()
     });
     return docRef.id;
@@ -71,12 +122,42 @@ export const addPasswordEntry = async (
 // Update an existing password entry
 export const updatePasswordEntry = async (
   entryId: string,
-  updates: Partial<VaultEntry>
+  updates: Partial<VaultEntry>,
+  encryptionKey: CryptoKey
 ): Promise<void> => {
   try {
+    // Encrypt only the fields that are being updated and are sensitive
+    const encryptedUpdates: any = { ...updates };
+
+    if (updates.password) {
+      const encryptedPassword = await encrypt(updates.password, encryptionKey);
+      encryptedUpdates.password = encryptedPassword.encrypted;
+      encryptedUpdates.passwordIV = encryptedPassword.iv;
+    }
+
+    if (updates.username) {
+      const encryptedUsername = await encrypt(updates.username, encryptionKey);
+      encryptedUpdates.username = encryptedUsername.encrypted;
+      encryptedUpdates.usernameIV = encryptedUsername.iv;
+    }
+
+    if (updates.notes !== undefined) {
+      if (updates.notes) {
+        const encryptedNotes = await encrypt(updates.notes, encryptionKey);
+        encryptedUpdates.notes = encryptedNotes.encrypted;
+        encryptedUpdates.notesIV = encryptedNotes.iv;
+      } else {
+        encryptedUpdates.notes = null;
+        encryptedUpdates.notesIV = null;
+      }
+    }
+
+    // Remove the lastModified field if it exists in updates
+    delete encryptedUpdates.lastModified;
+
     const docRef = doc(db, COLLECTION_NAME, entryId);
     await updateDoc(docRef, {
-      ...updates,
+      ...encryptedUpdates,
       lastModified: serverTimestamp()
     });
   } catch (error) {

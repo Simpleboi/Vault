@@ -43,6 +43,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Users can only access their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Users can only access their own password entries
     match /passwords/{passwordId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
@@ -93,9 +98,10 @@ You have two options:
 4. Enter an email and password
 5. Click **Add user**
 
-### Option B: Using the App
-- Once your app is running, you can use the Firebase SDK to create users programmatically
-- Note: You'll need to implement a sign-up UI (not included in current version)
+### Option B: Using the App (Recommended)
+- The app now includes a sign-up feature!
+- Just click the "Sign Up" tab on the lock screen
+- Create your account with email and password
 
 ## Step 8: Run Your App
 
@@ -107,31 +113,54 @@ Then open `http://localhost:5173` and sign in with the credentials you created!
 
 ## Firestore Data Structure
 
-Your passwords are stored in Firestore with this structure:
+Your data is stored in Firestore with two collections:
 
-**Collection**: `passwords`
+### **Collection**: `users`
+Each user document contains:
+- `salt` (string, hex-encoded) - Unique salt for key derivation
+- `createdAt` (timestamp) - Account creation time
 
-**Document fields**:
+### **Collection**: `passwords`
+Each password entry contains:
 - `userId` (string) - The authenticated user's UID
-- `title` (string) - Password entry title
-- `username` (string) - Username/email for the service
-- `password` (string) - The password (stored as plain text - consider encryption)
-- `url` (string, optional) - Website URL
-- `notes` (string, optional) - Additional notes
-- `category` (string, optional) - Category (Work, Coding, School, etc.)
-- `strength` (string, optional) - Password strength (weak, medium, strong)
-- `isCompromised` (boolean, optional) - Whether the password is compromised
-- `lastModified` (timestamp) - When the entry was last updated
+- `title` (string) - Password entry title (NOT encrypted for searchability)
+- `username` (string, encrypted) - Encrypted username/email
+- `usernameIV` (string) - Initialization vector for username encryption
+- `password` (string, encrypted) - Encrypted password
+- `passwordIV` (string) - Initialization vector for password encryption
+- `notes` (string, encrypted, optional) - Encrypted notes
+- `notesIV` (string, optional) - Initialization vector for notes encryption
+- `url` (string, optional) - Website URL (NOT encrypted)
+- `category` (string, optional) - Category (NOT encrypted for filtering)
+- `strength` (string, optional) - Password strength indicator
+- `isCompromised` (boolean, optional) - Breach indicator
+- `lastModified` (timestamp) - Last update time
 
-## Security Considerations
+## Security Architecture
 
-⚠️ **Important**: This setup stores passwords in **plain text** in Firestore. For a production password manager, you should:
+✅ **Your vault now uses client-side encryption!**
 
-1. **Encrypt passwords** before storing them in Firestore
-2. Use your master password as the encryption key
-3. Implement proper key derivation (PBKDF2, Argon2, etc.)
-4. Never store the master password itself
-5. Consider using Firebase Security Rules to add additional layers of protection
+### Encryption Details:
+1. **Algorithm**: AES-256-GCM (Galois/Counter Mode)
+2. **Key Derivation**: PBKDF2 with 100,000 iterations
+3. **Zero-Knowledge**: Passwords never leave your device unencrypted
+4. **Salt Storage**: Unique salt per user stored in Firestore
+5. **Encrypted Fields**: Passwords, usernames, and notes are encrypted
+6. **Initialization Vectors**: Unique IV for each encrypted field
+
+### How It Works:
+1. You sign in with your Firebase password
+2. Your unique salt is retrieved from Firestore
+3. An encryption key is derived from your password + salt using PBKDF2
+4. All passwords are encrypted/decrypted in your browser
+5. Only encrypted data is sent to/from Firestore
+6. The encryption key never leaves your device
+
+### Important Security Notes:
+- **Your Firebase password IS your master password** - Keep it strong and secure!
+- If you forget your password, your encrypted data cannot be recovered
+- The encryption key is never stored anywhere - it exists only in memory while you're signed in
+- When you lock the vault, the encryption key is cleared from memory
 
 ## Troubleshooting
 
