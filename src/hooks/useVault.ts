@@ -57,15 +57,17 @@ export function useVault() {
   }, []);
 
   const resetIdleTimer = useCallback(() => {
-    if (idleTimer) clearTimeout(idleTimer);
+    setIdleTimer((prevTimer) => {
+      if (prevTimer) clearTimeout(prevTimer);
 
-    if (!isLocked) {
-      const timer = setTimeout(() => {
-        lock();
-      }, AUTO_LOCK_TIME);
-      setIdleTimer(timer);
-    }
-  }, [isLocked, idleTimer]);
+      if (!isLocked) {
+        return setTimeout(() => {
+          lock();
+        }, AUTO_LOCK_TIME);
+      }
+      return null;
+    });
+  }, [isLocked, lock]);
 
   useEffect(() => {
     if (!isLocked) {
@@ -81,13 +83,16 @@ export function useVault() {
         events.forEach(event => {
           window.removeEventListener(event, resetIdleTimer);
         });
-        if (idleTimer) clearTimeout(idleTimer);
+        setIdleTimer((prevTimer) => {
+          if (prevTimer) clearTimeout(prevTimer);
+          return null;
+        });
       };
     }
   }, [isLocked, resetIdleTimer]);
 
   // Lock vault
-  const lock = async () => {
+  const lock = useCallback(async () => {
     try {
       await firebaseSignOut();
       setIsLocked(true);
@@ -96,13 +101,16 @@ export function useVault() {
       setEntries([]);
       setUserId(null);
       setEncryptionKey(null); // Clear encryption key from memory
-      if (idleTimer) clearTimeout(idleTimer);
+      setIdleTimer((prevTimer) => {
+        if (prevTimer) clearTimeout(prevTimer);
+        return null;
+      });
       toast.success('Vault locked');
     } catch (error: any) {
       toast.error('Failed to lock vault');
       console.error('Error locking vault:', error);
     }
-  };
+  }, []);
 
   // Add new entry
   const addEntry = async (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => {
