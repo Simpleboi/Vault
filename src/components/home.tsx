@@ -10,7 +10,6 @@ function Home() {
     allEntries,
     searchQuery,
     selectedCategory,
-    unlock,
     lock,
     addEntry,
     updateEntry,
@@ -21,7 +20,7 @@ function Home() {
   if (isLocked) {
     return (
       <>
-        <LockScreen onUnlock={unlock} />
+        <LockScreen />
         <Toaster position="top-right" />
       </>
     );

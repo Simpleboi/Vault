@@ -1,36 +1,62 @@
 import { useState, FormEvent } from 'react';
-import { Lock, Shield, Mail } from 'lucide-react';
+import { Lock, Shield, Mail, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { signIn, signUp } from '@/services/authService';
+import { toast } from 'sonner';
 
-interface LockScreenProps {
-  onUnlock: (email: string, password: string) => Promise<boolean>;
-}
+type AuthMode = 'signin' | 'signup';
 
-export default function LockScreen({ onUnlock }: LockScreenProps) {
+export default function LockScreen() {
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validation
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (mode === 'signup' && password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const success = await onUnlock(email, password);
-
-      if (!success) {
-        setError('Invalid email or password');
-        setPassword('');
+      if (mode === 'signin') {
+        await signIn(email, password);
+        toast.success('Welcome back!');
+      } else {
+        await signUp(email, password);
+        toast.success('Account created successfully!');
       }
+      // Auth state listener in useVault will handle unlocking
     } catch (err: any) {
-      setError(err.message || 'Failed to unlock vault');
+      const errorMessage = err.message || `Failed to ${mode === 'signin' ? 'sign in' : 'sign up'}`;
+      setError(errorMessage);
+      toast.error(errorMessage);
       setPassword('');
+      setConfirmPassword('');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const switchMode = () => {
+    setMode(mode === 'signin' ? 'signup' : 'signin');
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -52,13 +78,41 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
             Vault
           </h1>
           <p className="text-sm text-white/60">
-            Sign in to unlock your vault
+            {mode === 'signin' ? 'Sign in to unlock your vault' : 'Create your secure vault'}
           </p>
         </div>
 
         {/* Auth Card */}
         <div className="glass-panel rounded-2xl p-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-6 p-1 glass-panel rounded-lg">
+            <button
+              type="button"
+              onClick={() => mode === 'signup' && switchMode()}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md font-semibold text-sm transition-all ${
+                mode === 'signin'
+                  ? 'bg-[#00d4ff] text-[#0a0e14]'
+                  : 'text-white/60 hover:text-white/80'
+              }`}
+            >
+              <LogIn className="w-4 h-4" strokeWidth={2} />
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => mode === 'signin' && switchMode()}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md font-semibold text-sm transition-all ${
+                mode === 'signup'
+                  ? 'bg-[#00d4ff] text-[#0a0e14]'
+                  : 'text-white/60 hover:text-white/80'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" strokeWidth={2} />
+              Sign Up
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-white/80 mb-2">
                 Email
@@ -70,7 +124,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 h-14 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
+                  className="pl-12 h-12 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
                   placeholder="your.email@example.com"
                   disabled={isLoading}
                   autoFocus
@@ -90,31 +144,53 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-12 h-14 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
-                  placeholder="Enter your password"
+                  className="pl-12 h-12 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
+                  placeholder={mode === 'signup' ? 'At least 6 characters' : 'Enter your password'}
                   disabled={isLoading}
                   required
                 />
               </div>
-              {error && (
-                <p className="mt-2 text-sm text-[#ff6b6b] animate-in fade-in slide-in-from-top-1 duration-300">
-                  {error}
-                </p>
-              )}
             </div>
+
+            {mode === 'signup' && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-white/80 mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" strokeWidth={2} />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-12 h-12 bg-white/5 border-white/10 input-recessed text-white placeholder:text-white/30 focus:border-[#00d4ff] focus:ring-[#00d4ff] focus:ring-2"
+                    placeholder="Re-enter your password"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <p className="text-sm text-[#ff6b6b] animate-in fade-in slide-in-from-top-1 duration-300">
+                {error}
+              </p>
+            )}
 
             <Button
               type="submit"
-              disabled={isLoading || !email || !password}
-              className="w-full h-14 bg-[#00d4ff] hover:bg-[#00bdeb] text-[#0a0e14] font-bold text-base active:scale-95 transition-all glow-cyan"
+              disabled={isLoading || !email || !password || (mode === 'signup' && !confirmPassword)}
+              className="w-full h-12 bg-[#00d4ff] hover:bg-[#00bdeb] text-[#0a0e14] font-bold text-base active:scale-95 transition-all glow-cyan"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">⏳</span>
-                  Signing in...
+                  {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
                 </span>
               ) : (
-                'Sign In'
+                mode === 'signin' ? 'Sign In' : 'Create Account'
               )}
             </Button>
           </form>
@@ -122,7 +198,9 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           {/* Info hint */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <p className="text-xs text-white/40 text-center">
-              Create an account in Firebase Console to get started
+              {mode === 'signin'
+                ? "Don't have an account? Click Sign Up above"
+                : 'Your passwords will be encrypted and stored securely'}
             </p>
           </div>
         </div>

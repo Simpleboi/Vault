@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { VaultEntry } from '@/types/vault';
-import { onAuthChange, signIn, signOut as firebaseSignOut, getCurrentUser } from '@/services/authService';
+import { onAuthChange, signOut as firebaseSignOut } from '@/services/authService';
 import {
   getPasswordEntries,
   addPasswordEntry,
@@ -81,25 +81,6 @@ export function useVault() {
       };
     }
   }, [isLocked, resetIdleTimer]);
-
-  // Unlock vault - now uses Firebase Auth
-  const unlock = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const user = await signIn(email, password);
-      setUserId(user.uid);
-      setIsLocked(false);
-      await loadEntries(user.uid);
-      toast.success('Vault unlocked');
-      return true;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to unlock vault');
-      console.error('Error unlocking vault:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Lock vault
   const lock = async () => {
@@ -204,7 +185,6 @@ export function useVault() {
     searchQuery,
     selectedCategory,
     isLoading,
-    unlock,
     lock,
     addEntry,
     updateEntry,
