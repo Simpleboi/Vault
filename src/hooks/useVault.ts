@@ -9,7 +9,7 @@ const MOCK_ENTRIES: VaultEntry[] = [
     username: 'john.doe@email.com',
     password: 'Gh$tR0ng!Pass2024',
     url: 'https://github.com',
-    category: 'Development',
+    category: 'Coding',
     lastModified: new Date('2024-01-15'),
     strength: 'strong'
   },
@@ -39,7 +39,7 @@ const MOCK_ENTRIES: VaultEntry[] = [
     username: 'john.doe',
     password: 'LinkedIn2023!',
     url: 'https://linkedin.com',
-    category: 'Professional',
+    category: 'Work',
     lastModified: new Date('2024-01-12'),
     strength: 'medium'
   },
@@ -52,6 +52,76 @@ const MOCK_ENTRIES: VaultEntry[] = [
     category: 'Shopping',
     lastModified: new Date('2024-01-18'),
     strength: 'weak'
+  },
+  {
+    id: '6',
+    title: 'Canvas LMS',
+    username: 'student.johndoe',
+    password: 'School!Pass2024',
+    url: 'https://canvas.instructure.com',
+    category: 'School',
+    lastModified: new Date('2024-01-22'),
+    strength: 'strong'
+  },
+  {
+    id: '7',
+    title: 'Google Drive (School)',
+    username: 'john.doe@university.edu',
+    password: 'MyDrive123',
+    url: 'https://drive.google.com',
+    category: 'School',
+    lastModified: new Date('2024-01-19'),
+    strength: 'medium'
+  },
+  {
+    id: '8',
+    title: 'Slack (Work)',
+    username: 'john.doe@company.com',
+    password: 'SlackSecure!2024',
+    url: 'https://company.slack.com',
+    category: 'Work',
+    lastModified: new Date('2024-01-21'),
+    strength: 'strong'
+  },
+  {
+    id: '9',
+    title: 'GitLab',
+    username: 'johndoe',
+    password: 'GitLab$2024Pass',
+    url: 'https://gitlab.com',
+    category: 'Coding',
+    lastModified: new Date('2024-01-17'),
+    strength: 'strong'
+  },
+  {
+    id: '10',
+    title: 'Stack Overflow',
+    username: 'john_doe_dev',
+    password: 'stackoverflow123',
+    url: 'https://stackoverflow.com',
+    category: 'Coding',
+    lastModified: new Date('2024-01-14'),
+    strength: 'weak'
+  },
+  {
+    id: '11',
+    title: 'Jira (Work)',
+    username: 'john.doe@company.com',
+    password: 'JiraWork2024!',
+    url: 'https://company.atlassian.net',
+    category: 'Work',
+    lastModified: new Date('2024-01-16'),
+    strength: 'strong'
+  },
+  {
+    id: '12',
+    title: 'Zoom (School)',
+    username: 'john.doe@university.edu',
+    password: 'ZoomClass2024',
+    url: 'https://zoom.us',
+    category: 'School',
+    lastModified: new Date('2024-01-13'),
+    strength: 'medium'
   }
 ];
 
@@ -59,6 +129,7 @@ export function useVault() {
   const [isLocked, setIsLocked] = useState(true);
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [idleTimer, setIdleTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Auto-lock after 5 minutes of inactivity
@@ -107,6 +178,7 @@ export function useVault() {
   const lock = () => {
     setIsLocked(true);
     setSearchQuery('');
+    setSelectedCategory(null);
     if (idleTimer) clearTimeout(idleTimer);
   };
 
@@ -134,6 +206,12 @@ export function useVault() {
   };
 
   const filteredEntries = entries.filter(entry => {
+    // Filter by category
+    if (selectedCategory && entry.category !== selectedCategory) {
+      return false;
+    }
+
+    // Filter by search query
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -147,12 +225,15 @@ export function useVault() {
   return {
     isLocked,
     entries: filteredEntries,
+    allEntries: entries,
     searchQuery,
+    selectedCategory,
     unlock,
     lock,
     addEntry,
     updateEntry,
     deleteEntry,
-    setSearchQuery
+    setSearchQuery,
+    setSelectedCategory
   };
 }

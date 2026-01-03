@@ -7,12 +7,15 @@ function Home() {
   const {
     isLocked,
     entries,
+    allEntries,
     searchQuery,
+    selectedCategory,
     unlock,
     lock,
     addEntry,
     updateEntry,
-    setSearchQuery
+    setSearchQuery,
+    setSelectedCategory
   } = useVault();
 
   if (isLocked) {
@@ -28,8 +31,11 @@ function Home() {
     <>
       <VaultView
         entries={entries}
+        allEntries={allEntries}
         searchQuery={searchQuery}
+        selectedCategory={selectedCategory}
         onSearchChange={setSearchQuery}
+        onCategoryChange={setSelectedCategory}
         onAddEntry={addEntry}
         onUpdateEntry={updateEntry}
         onLock={lock}

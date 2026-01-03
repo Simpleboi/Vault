@@ -6,12 +6,16 @@ import VaultEntryCard from '@/components/VaultEntryCard';
 import EntryModal from '@/components/EntryModal';
 import CommandPalette from '@/components/CommandPalette';
 import SecurityDashboard from '@/components/SecurityDashboard';
+import CategoryFilter from '@/components/CategoryFilter';
 import type { VaultEntry } from '@/types/vault';
 
 interface VaultViewProps {
   entries: VaultEntry[];
+  allEntries: VaultEntry[];
   searchQuery: string;
+  selectedCategory: string | null;
   onSearchChange: (query: string) => void;
+  onCategoryChange: (category: string | null) => void;
   onAddEntry: (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => void;
   onUpdateEntry: (id: string, updates: Partial<VaultEntry>) => void;
   onLock: () => void;
@@ -19,8 +23,11 @@ interface VaultViewProps {
 
 export default function VaultView({
   entries,
+  allEntries,
   searchQuery,
+  selectedCategory,
   onSearchChange,
+  onCategoryChange,
   onAddEntry,
   onUpdateEntry,
   onLock
@@ -88,6 +95,13 @@ export default function VaultView({
         {/* Search & Stats */}
         <div className="mb-8 space-y-4">
           <VaultSearch value={searchQuery} onChange={onSearchChange} />
+
+          {/* Category Filter */}
+          <CategoryFilter
+            categories={Array.from(new Set(allEntries.map(e => e.category).filter(Boolean))) as string[]}
+            selectedCategory={selectedCategory}
+            onSelectCategory={onCategoryChange}
+          />
 
           {/* Quick Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
