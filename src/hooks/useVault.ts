@@ -37,6 +37,27 @@ export function useVault() {
     return () => unsubscribe();
   }, []);
 
+  // Lock vault
+  const lock = useCallback(async () => {
+    try {
+      await firebaseSignOut();
+      setIsLocked(true);
+      setSearchQuery('');
+      setSelectedCategory(null);
+      setEntries([]);
+      setUserId(null);
+      setEncryptionKey(null); // Clear encryption key from memory
+      setIdleTimer((prevTimer) => {
+        if (prevTimer) clearTimeout(prevTimer);
+        return null;
+      });
+      toast.success('Vault locked');
+    } catch (error: any) {
+      toast.error('Failed to lock vault');
+      console.error('Error locking vault:', error);
+    }
+  }, []);
+
   // Function to unlock vault with encryption key
   const unlockVault = useCallback(async (uid: string, key: CryptoKey) => {
     setUserId(uid);
@@ -90,27 +111,6 @@ export function useVault() {
       };
     }
   }, [isLocked, resetIdleTimer]);
-
-  // Lock vault
-  const lock = useCallback(async () => {
-    try {
-      await firebaseSignOut();
-      setIsLocked(true);
-      setSearchQuery('');
-      setSelectedCategory(null);
-      setEntries([]);
-      setUserId(null);
-      setEncryptionKey(null); // Clear encryption key from memory
-      setIdleTimer((prevTimer) => {
-        if (prevTimer) clearTimeout(prevTimer);
-        return null;
-      });
-      toast.success('Vault locked');
-    } catch (error: any) {
-      toast.error('Failed to lock vault');
-      console.error('Error locking vault:', error);
-    }
-  }, []);
 
   // Add new entry
   const addEntry = async (entry: Omit<VaultEntry, 'id' | 'lastModified'>) => {
