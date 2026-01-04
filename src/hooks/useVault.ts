@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { VaultEntry } from '@/types/vault';
 import { onAuthChange, signOut as firebaseSignOut } from '@/services/authService';
 import {
@@ -9,18 +9,21 @@ import {
 } from '@/services/firestoreService';
 import { toast } from 'sonner';
 
+// Auto-lock after 2 minutes of inactivity
+const AUTO_LOCK_TIME = 2 * 60 * 1000;
+
 export function useVault() {
   const [isLocked, setIsLocked] = useState(true);
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [idleTimer, setIdleTimer] = useState<NodeJS.Timeout | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auto-lock after 5 minutes of inactivity
-  const AUTO_LOCK_TIME = 5 * 60 * 1000;
+  // Use refs for timer management to avoid re-render cascades
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lockingRef = useRef(false);
 
   // Listen for auth state changes (logout only)
   useEffect(() => {
@@ -39,7 +42,17 @@ export function useVault() {
 
   // Lock vault
   const lock = useCallback(async () => {
+    // Prevent multiple simultaneous lock calls
+    if (lockingRef.current) return;
+    lockingRef.current = true;
+
     try {
+      // Clear any pending idle timer
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+
       await firebaseSignOut();
       setIsLocked(true);
       setSearchQuery('');
@@ -47,14 +60,12 @@ export function useVault() {
       setEntries([]);
       setUserId(null);
       setEncryptionKey(null); // Clear encryption key from memory
-      setIdleTimer((prevTimer) => {
-        if (prevTimer) clearTimeout(prevTimer);
-        return null;
-      });
       toast.success('Vault locked');
     } catch (error: any) {
       toast.error('Failed to lock vault');
       console.error('Error locking vault:', error);
+    } finally {
+      lockingRef.current = false;
     }
   }, []);
 
@@ -78,17 +89,16 @@ export function useVault() {
   }, []);
 
   const resetIdleTimer = useCallback(() => {
-    setIdleTimer((prevTimer) => {
-      if (prevTimer) clearTimeout(prevTimer);
+    // Clear existing timer
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
 
-      if (!isLocked) {
-        return setTimeout(() => {
-          lock();
-        }, AUTO_LOCK_TIME);
-      }
-      return null;
-    });
-  }, [isLocked, lock]);
+    // Set new timer
+    idleTimerRef.current = setTimeout(() => {
+      lock();
+    }, AUTO_LOCK_TIME);
+  }, [lock]);
 
   useEffect(() => {
     if (!isLocked) {
@@ -104,10 +114,10 @@ export function useVault() {
         events.forEach(event => {
           window.removeEventListener(event, resetIdleTimer);
         });
-        setIdleTimer((prevTimer) => {
-          if (prevTimer) clearTimeout(prevTimer);
-          return null;
-        });
+        if (idleTimerRef.current) {
+          clearTimeout(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
       };
     }
   }, [isLocked, resetIdleTimer]);
