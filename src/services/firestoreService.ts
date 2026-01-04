@@ -33,7 +33,7 @@ const encryptEntry = async (
   const encryptedUsername = await encrypt(entry.username, encryptionKey);
   const encryptedNotes = entry.notes ? await encrypt(entry.notes, encryptionKey) : null;
 
-  return {
+  const encryptedData: any = {
     title: entry.title, // Title is not encrypted for searchability
     username: encryptedUsername.encrypted,
     usernameIV: encryptedUsername.iv,
@@ -41,11 +41,15 @@ const encryptEntry = async (
     passwordIV: encryptedPassword.iv,
     notes: encryptedNotes?.encrypted || null,
     notesIV: encryptedNotes?.iv || null,
-    url: entry.url,
-    category: entry.category,
-    strength: entry.strength,
-    isCompromised: entry.isCompromised
   };
+
+  // Only include optional fields if they have defined values (Firestore doesn't accept undefined)
+  if (entry.url !== undefined) encryptedData.url = entry.url;
+  if (entry.category !== undefined) encryptedData.category = entry.category;
+  if (entry.strength !== undefined) encryptedData.strength = entry.strength;
+  if (entry.isCompromised !== undefined) encryptedData.isCompromised = entry.isCompromised;
+
+  return encryptedData;
 };
 
 // Decrypt sensitive fields of an entry
