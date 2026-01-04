@@ -9,8 +9,8 @@ import {
 } from '@/services/firestoreService';
 import { toast } from 'sonner';
 
-// Auto-lock after 2 minutes of inactivity
-const AUTO_LOCK_TIME = 2 * 60 * 1000;
+// Auto-lock after 5 minutes of inactivity
+const AUTO_LOCK_TIME = 5 * 60 * 1000;
 
 export function useVault() {
   const [isLocked, setIsLocked] = useState(true);
