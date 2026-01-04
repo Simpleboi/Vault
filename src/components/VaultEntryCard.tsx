@@ -89,7 +89,7 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
       className="glass-panel glass-panel-hover rounded-xl p-4 cursor-pointer group"
       onClick={() => onEdit(entry)}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-6">
         <div className="flex-1 min-w-0">
           {/* Title & URL */}
           <div className="flex items-center gap-2 mb-2">
@@ -180,6 +180,18 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
             )}
           </div>
         </div>
+
+        {/* Notes Section */}
+        {entry.notes && (
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+              <p className="text-xs font-semibold text-white/40 mb-1.5">Notes</p>
+              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                {entry.notes}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
