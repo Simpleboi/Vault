@@ -101,6 +101,7 @@ Vault comes with pre-configured categories, each with unique colors and icons:
 - **Email** - Yellow with Mail icon
 - **Shopping** - Pink with ShoppingCart icon
 - **Entertainment** - Red with Film icon
+- **Gaming** - Violet with Gamepad icon
 - **Social** - Rose with Heart icon
 - **Finance/Banking** - Emerald with CreditCard icon
 - **Home** - Orange with Home icon

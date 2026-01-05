@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Copy, Eye, EyeOff, ExternalLink, Briefcase, Code, GraduationCap, Mail, ShoppingCart, Film, User, Heart, Home, CreditCard, Globe, Folder } from 'lucide-react';
+import { Copy, Eye, EyeOff, ExternalLink, Briefcase, Code, GraduationCap, Mail, ShoppingCart, Film, User, Heart, Home, CreditCard, Globe, Folder, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { VaultEntry } from '@/types/vault';
@@ -18,6 +18,7 @@ const CATEGORY_ICONS: Record<string, any> = {
   'Email': Mail,
   'Shopping': ShoppingCart,
   'Entertainment': Film,
+  'Gaming': Gamepad2,
   'Social': Heart,
   'Finance': CreditCard,
   'Banking': CreditCard,
@@ -36,6 +37,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Email': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   'Shopping': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
   'Entertainment': 'bg-red-500/20 text-red-400 border-red-500/30',
+  'Gaming': 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   'Social': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
   'Finance': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   'Banking': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',

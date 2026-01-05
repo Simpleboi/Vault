@@ -12,6 +12,7 @@ import {
   CreditCard,
   Globe,
   Folder,
+  Gamepad2,
   X,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ const CATEGORY_ICONS: Record<string, any> = {
   Email: Mail,
   Shopping: ShoppingCart,
   Entertainment: Film,
+  Gaming: Gamepad2,
   Social: Heart,
   Finance: CreditCard,
   Banking: CreditCard,
@@ -54,6 +56,8 @@ const CATEGORY_COLORS: Record<string, string> = {
     "bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 border-pink-500/30",
   Entertainment:
     "bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30",
+  Gaming:
+    "bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/30",
   Social:
     "bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border-rose-500/30",
   Finance:
