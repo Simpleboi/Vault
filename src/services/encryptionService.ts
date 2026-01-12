@@ -67,7 +67,7 @@ export const encrypt = async (
   const iv = generateIV();
 
   const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     key,
     dataBuffer
   );
@@ -92,9 +92,9 @@ export const decrypt = async (
   const ivBuffer = base64ToArrayBuffer(iv);
 
   const decryptedBuffer = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: ivBuffer },
+    { name: 'AES-GCM', iv: ivBuffer as BufferSource },
     key,
-    encryptedBuffer
+    encryptedBuffer as BufferSource
   );
 
   const decoder = new TextDecoder();
