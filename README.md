@@ -47,49 +47,6 @@ A secure, zero-knowledge password manager built with modern web technologies. Va
 - **Icons**: Lucide React
 - **Notifications**: Sonner
 
-## Getting Started
-
-### Prerequisites
-- Node.js 18+ and npm
-- Firebase project with Firestore and Authentication enabled
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd vault
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create a `.env` file in the root directory with your Firebase configuration:
-```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-```
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-5. Open your browser to `http://localhost:5173`
-
-### Building for Production
-
-```bash
-npm run build
-npm run preview
-```
-
 ## Available Categories
 
 Vault comes with pre-configured categories, each with unique colors and icons:
