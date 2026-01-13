@@ -91,7 +91,7 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
       className="glass-panel glass-panel-hover rounded-xl p-4 cursor-pointer group"
       onClick={() => onEdit(entry)}
     >
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
         <div className="flex-1 min-w-0">
           {/* Title & URL */}
           <div className="flex items-center gap-2 mb-2">
@@ -104,7 +104,7 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-[#00d4ff] hover:text-[#00bdeb] transition-colors"
+                className="text-[#00d4ff] hover:text-[#00bdeb] transition-colors flex-shrink-0"
               >
                 <ExternalLink className="w-4 h-4" strokeWidth={2} />
               </a>
@@ -121,15 +121,15 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
                 e.stopPropagation();
                 handleCopy(entry.username, 'Username');
               }}
-              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff]"
+              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff] flex-shrink-0"
             >
               <Copy className="w-4 h-4" strokeWidth={2} />
             </Button>
           </div>
 
           {/* Password */}
-          <div className="flex items-center gap-2">
-            <code className="text-sm text-white/80 mono">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <code className="text-sm text-white/80 mono truncate">
               {showPassword ? entry.password : '••••••••••••'}
             </code>
             <Button
@@ -139,7 +139,7 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
                 e.stopPropagation();
                 setShowPassword(!showPassword);
               }}
-              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff]"
+              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff] flex-shrink-0"
             >
               {showPassword ? (
                 <EyeOff className="w-4 h-4" strokeWidth={2} />
@@ -154,14 +154,14 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
                 e.stopPropagation();
                 handleCopy(entry.password, 'Password');
               }}
-              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff]"
+              className="h-7 w-7 p-0 hover:bg-white/10 hover:text-[#00d4ff] flex-shrink-0"
             >
               <Copy className="w-4 h-4" strokeWidth={2} />
             </Button>
           </div>
 
           {/* Category & Strength */}
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
             {entry.category && (
               <span className={`text-xs px-2 py-1 rounded border flex items-center gap-1.5 ${
                 CATEGORY_COLORS[entry.category] || 'bg-white/5 text-white/40 border-white/10'
@@ -185,10 +185,10 @@ export default function VaultEntryCard({ entry, onEdit }: VaultEntryCardProps) {
 
         {/* Notes Section */}
         {entry.notes && (
-          <div className="w-64 flex-shrink-0">
+          <div className="w-full md:w-64 md:flex-shrink-0">
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
               <p className="text-xs font-semibold text-white/40 mb-1.5">Notes</p>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap break-words">
                 {entry.notes}
               </p>
             </div>
